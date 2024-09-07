@@ -12,6 +12,7 @@ type TestCase struct {
 	ExpectedTaxRateInRetirement float64
 	AnnualInflationRate         float64
 	AnnualContributions         []AnnualContribution
+	AnnualWithdrawals           []AnnualWithdrawal
 	PortfolioAllocation         PortfolioAllocation
 	InitPortfolio               Portfolio
 	EndPortfolio                Portfolio
@@ -363,7 +364,7 @@ var successCases = []TestCase{
 		},
 	},
 	{
-		CaseName:            "LastYearIsMultipleYearsAway_MultipleAssets_WithDecliningConstantContributionsStoppingPartway_WithInflation_WithReturns",
+		CaseName:            "LastYearIsMultipleYearsAway_MultipleAssets_WithDecliningContributionsStoppingPartway_WithInflation_WithReturns",
 		LastYear:            5,
 		AnnualInflationRate: 0.05,
 		AnnualContributions: []AnnualContribution{
@@ -396,6 +397,93 @@ var successCases = []TestCase{
 		EndPortfolio: Portfolio{
 			Equities: 312_504,
 			Cash:     9500,
+		},
+	},
+	{
+		CaseName:            "LastYearIsMultipleYearsAway_MultipleAssets_WithDecliningWithdrawalsStoppingPartway_WithInflation",
+		LastYear:            5,
+		AnnualInflationRate: 0.05,
+		AnnualWithdrawals: []AnnualWithdrawal{
+			{
+				Amount:          10_000,
+				StartYear:       0,
+				EndYear:         2,
+				AnnualPctChange: -0.1,
+			},
+			{
+				Amount:          40_000,
+				StartYear:       0,
+				EndYear:         2,
+				AnnualPctChange: -0.1,
+			},
+		},
+		PortfolioAllocation: PortfolioAllocation{
+			Equities: {
+				ReturnRate: 0.07,
+				Allocation: 0.9,
+			},
+			Cash: {
+				ReturnRate: 0.05,
+				Allocation: 0.1,
+			},
+		},
+		InitPortfolio: Portfolio{
+			Equities: 200_000,
+		},
+		EndPortfolio: Portfolio{
+			Equities: 139_315,
+			Cash:     0,
+		},
+	},
+
+	{
+		CaseName:            "LastYearIsMultipleYearsAway_MultipleAssets_WithIncreasingContributionsAneDecliningWithdrawalsStoppingPartway_WithInflation_WithReturns",
+		LastYear:            5,
+		AnnualInflationRate: 0.05,
+		AnnualContributions: []AnnualContribution{
+			{
+				Amount:          30_000,
+				StartYear:       1,
+				EndYear:         2,
+				AnnualPctChange: 0.1,
+			},
+			{
+				Amount:          40_000,
+				StartYear:       1,
+				EndYear:         2,
+				AnnualPctChange: 0.1,
+			},
+		},
+		AnnualWithdrawals: []AnnualWithdrawal{
+			{
+				Amount:          10_000,
+				StartYear:       0,
+				EndYear:         2,
+				AnnualPctChange: -0.1,
+			},
+			{
+				Amount:          35_000,
+				StartYear:       0,
+				EndYear:         2,
+				AnnualPctChange: -0.1,
+			},
+		},
+		PortfolioAllocation: PortfolioAllocation{
+			Equities: {
+				ReturnRate: 0.07,
+				Allocation: 0.9,
+			},
+			Cash: {
+				ReturnRate: 0.05,
+				Allocation: 0.1,
+			},
+		},
+		InitPortfolio: Portfolio{
+			Equities: 200_000,
+		},
+		EndPortfolio: Portfolio{
+			Equities: 273_345,
+			Cash:     5450,
 		},
 	},
 	{
@@ -445,7 +533,13 @@ var successCases = []TestCase{
 func TestForecastFuturePortfolioValueByYearSuccessCases(t *testing.T) {
 	for _, test := range successCases {
 		t.Run(test.CaseName, func(t *testing.T) {
-			forecastedPortfoliosByYear, _ := ForecastFuturePortfolioValueByYear(test.InitPortfolio, test.AnnualContributions, test.PortfolioAllocation, test.AnnualInflationRate, test.LastYear)
+			forecastedPortfoliosByYear, _ := ForecastFuturePortfolioValueByYear(
+				test.InitPortfolio,
+				test.AnnualContributions,
+				test.AnnualWithdrawals,
+				test.PortfolioAllocation,
+				test.AnnualInflationRate,
+				test.LastYear)
 			forecastedPortfolioForLastYear := forecastedPortfoliosByYear[len(forecastedPortfoliosByYear)-1]
 			for assetType, expectedVal := range test.EndPortfolio {
 				actualVal, ok := forecastedPortfolioForLastYear[assetType]
@@ -511,12 +605,39 @@ var errorCases = []TestCase{
 		InitPortfolio: Portfolio{},
 		ErrorMessage:  "Annual contribution end year must be less than or equal to last year",
 	},
+	{
+		CaseName:            "AnnualContributionStopsAfterLastYear",
+		LastYear:            1,
+		AnnualInflationRate: 0.0,
+		AnnualWithdrawals: []AnnualWithdrawal{
+			{
+				Amount:          10_000,
+				StartYear:       0,
+				EndYear:         2,
+				AnnualPctChange: 0.0,
+			},
+			{
+				Amount:          40_000,
+				StartYear:       0,
+				EndYear:         2,
+				AnnualPctChange: 0.0,
+			},
+		},
+		InitPortfolio: Portfolio{},
+		ErrorMessage:  "Annual withdrawal end year must be less than or equal to last year",
+	},
 }
 
 func TestForecastFuturePortfolioValueByYearErrorCases(t *testing.T) {
 	for _, test := range errorCases {
 		t.Run(test.CaseName, func(t *testing.T) {
-			_, err := ForecastFuturePortfolioValueByYear(test.InitPortfolio, test.AnnualContributions, test.PortfolioAllocation, test.AnnualInflationRate, test.LastYear)
+			_, err := ForecastFuturePortfolioValueByYear(
+				test.InitPortfolio,
+				test.AnnualContributions,
+				test.AnnualWithdrawals,
+				test.PortfolioAllocation,
+				test.AnnualInflationRate,
+				test.LastYear)
 			if err.Error() != test.ErrorMessage {
 				t.Errorf("Expected %v but got %v", test.ErrorMessage, err.Error())
 			}

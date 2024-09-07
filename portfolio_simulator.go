@@ -13,6 +13,7 @@ type AnnualPortfolioBalanceChange struct {
 }
 
 type AnnualContribution AnnualPortfolioBalanceChange
+type AnnualWithdrawal AnnualPortfolioBalanceChange
 
 type assetType int
 
@@ -36,10 +37,23 @@ type assetValue struct {
 
 type Portfolio map[assetType]float64
 
-func ForecastFuturePortfolioValueByYear(initPortfolio Portfolio, annualContributions []AnnualContribution, portfolioAllocationWitNominalRates PortfolioAllocation, annualInflationRate float64, years int) ([]Portfolio, error) {
+func ForecastFuturePortfolioValueByYear(
+	initPortfolio Portfolio,
+	annualContributions []AnnualContribution,
+	annualWithdrawals []AnnualWithdrawal,
+	portfolioAllocationWitNominalRates PortfolioAllocation,
+	annualInflationRate float64,
+	years int) ([]Portfolio, error) {
+
 	for _, annualContribution := range annualContributions {
 		if annualContribution.EndYear > years {
 			return nil, errors.New("Annual contribution end year must be less than or equal to last year")
+		}
+	}
+
+	for _, annualWithdrawal := range annualWithdrawals {
+		if annualWithdrawal.EndYear > years {
+			return nil, errors.New("Annual withdrawal end year must be less than or equal to last year")
 		}
 	}
 
@@ -59,9 +73,12 @@ func ForecastFuturePortfolioValueByYear(initPortfolio Portfolio, annualContribut
 		}
 	}
 
-	var result []Portfolio
-	for year := 0; year <= years; year++ {
-		result = append(result, forecastFuturePortfolioValue(initPortfolio, annualContributions, portfolioAllocationWithRealRates, year))
+	var result []Portfolio = []Portfolio{initPortfolio}
+	var prevPortfolio Portfolio = initPortfolio
+	for year := 1; year <= years; year++ {
+		curPortfolio := forecastNextYearPortfolio(prevPortfolio, annualContributions, annualWithdrawals, portfolioAllocationWithRealRates, year)
+		result = append(result, curPortfolio)
+		prevPortfolio = curPortfolio
 	}
 	return result, nil
 }
@@ -70,26 +87,77 @@ func convertToRealRate(nominalRate float64, inflationRate float64) float64 {
 	return nominalRate - inflationRate
 }
 
-func forecastFuturePortfolioValue(initPortfolio Portfolio, annualContributions []AnnualContribution, portfolioAllocationWitRealRates PortfolioAllocation, year int) Portfolio {
+func forecastNextYearPortfolio(
+	prevPortfolio Portfolio,
+	annualContributions []AnnualContribution,
+	annualWithdrawals []AnnualWithdrawal,
+	portfolioAllocationWitRealRates PortfolioAllocation,
+	year int) Portfolio {
+
 	forecastedPortfolio := Portfolio{}
 
-	for assetType, initAssetVal := range initPortfolio {
-		forecastedPortfolio[assetType] = initAssetVal * math.Pow(1+portfolioAllocationWitRealRates[assetType].ReturnRate, float64(year))
+	for assetType, prevAssetVal := range prevPortfolio {
+		forecastedPortfolio[assetType] = prevAssetVal * (1 + portfolioAllocationWitRealRates[assetType].ReturnRate)
 	}
 
-	for curYear := 1; curYear <= year; curYear++ {
-		for _, contrib := range annualContributions {
-			if curYear >= contrib.StartYear && curYear <= contrib.EndYear {
-				contribAmtAdjustedForChangePct := contrib.Amount
-				// Adjust for change in contribution after the first year
-				if curYear > contrib.StartYear {
-					contribAmtAdjustedForChangePct = contrib.Amount * math.Pow(1+contrib.AnnualPctChange, float64(curYear-contrib.StartYear-1))
-				}
-				for assetType, assetAllocation := range portfolioAllocationWitRealRates {
-					forecastedPortfolio[assetType] = forecastedPortfolio[assetType] + float64(contribAmtAdjustedForChangePct)*assetAllocation.Allocation*math.Pow(1+assetAllocation.ReturnRate, float64(year-curYear))
-				}
+	for _, contrib := range annualContributions {
+		if year >= contrib.StartYear && year <= contrib.EndYear {
+			contribAmtAdjustedForChangePct := contrib.Amount
+			// Adjust for change in contribution after the first year
+			if year > contrib.StartYear {
+				contribAmtAdjustedForChangePct = contrib.Amount * math.Pow(1+contrib.AnnualPctChange, float64(year-contrib.StartYear-1))
+			}
+			for assetType, assetAllocation := range portfolioAllocationWitRealRates {
+				forecastedPortfolio[assetType] = forecastedPortfolio[assetType] + float64(contribAmtAdjustedForChangePct)*assetAllocation.Allocation
 			}
 		}
 	}
-	return forecastedPortfolio
+
+	for _, withdrawal := range annualWithdrawals {
+		if year >= withdrawal.StartYear && year <= withdrawal.EndYear {
+			withdrawalAmtAdjustedForChangePct := withdrawal.Amount
+			// Adjust for change in withdrawal after the first year
+			if year > withdrawal.StartYear {
+				withdrawalAmtAdjustedForChangePct = withdrawal.Amount * math.Pow(1+withdrawal.AnnualPctChange, float64(year-withdrawal.StartYear-1))
+			}
+			for assetType, assetAllocation := range portfolioAllocationWitRealRates {
+				forecastedPortfolio[assetType] = forecastedPortfolio[assetType] - float64(withdrawalAmtAdjustedForChangePct)*assetAllocation.Allocation
+			}
+		}
+	}
+	return rebalance(forecastedPortfolio)
+}
+
+func rebalance(portfolio Portfolio) Portfolio {
+	portfolioValue := 0.0
+	positiveValAssetTypes := []assetType{}
+	negativeValAssetTypes := []assetType{}
+	for idx, assetVal := range portfolio {
+		portfolioValue = portfolioValue + assetVal
+		if assetVal > 0 {
+			positiveValAssetTypes = append(positiveValAssetTypes, idx)
+		} else if assetVal < 0 {
+			negativeValAssetTypes = append(negativeValAssetTypes, idx)
+		}
+	}
+
+	// Only rebalance if we're not in the negative
+	if portfolioValue < 0.0 {
+		return portfolio
+	}
+
+	rebalancedPortfolio := Portfolio{}
+	for key, value := range portfolio {
+		rebalancedPortfolio[key] = value
+	}
+
+	for _, assetType := range negativeValAssetTypes {
+		assetVal := portfolio[assetType]
+		amtToSubtractFromEachPosAsset := assetVal / float64(len(positiveValAssetTypes))
+		rebalancedPortfolio[assetType] = 0
+		for _, assetType := range positiveValAssetTypes {
+			rebalancedPortfolio[assetType] = rebalancedPortfolio[assetType] - amtToSubtractFromEachPosAsset
+		}
+	}
+	return rebalancedPortfolio
 }
