@@ -5,24 +5,23 @@ import (
 )
 
 type PortfolioSimulatorTestCase struct {
-	CaseName                    string
-	LastYear                    int
-	ExpectedTaxRateInRetirement float64
-	AnnualInflationRate         float64
-	AnnualContributions         []AnnualContribution
-	AnnualWithdrawals           []AnnualWithdrawal
-	PortfolioAllocation         PortfolioAllocation
-	InitPortfolio               Portfolio
-	EndPortfolio                Portfolio
-	ErrorMessage                string
+	CaseName                      string
+	LastYear                      int
+	ExpectedTaxRateInRetirement   float64
+	AnnualInflationRate           float64
+	AnnualPortfolioBalanceChanges []AnnualPortfolioBalanceChange
+	PortfolioAllocation           PortfolioAllocation
+	InitPortfolio                 Portfolio
+	EndPortfolio                  Portfolio
+	ErrorMessage                  string
 }
 
 var simulationSuccessCases = []PortfolioSimulatorTestCase{
 	{
-		CaseName:            "LastYearIsToday",
-		LastYear:            0,
-		AnnualInflationRate: 0.0,
-		AnnualContributions: []AnnualContribution{},
+		CaseName:                      "LastYearIsToday",
+		LastYear:                      0,
+		AnnualInflationRate:           0.0,
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{},
 		PortfolioAllocation: PortfolioAllocation{
 			Equities: {
 				ReturnRate: 0.07,
@@ -37,10 +36,10 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		},
 	},
 	{
-		CaseName:            "LastYearIsOneYearAway_SingleAsset_NoContributions_NoInflation_WithReturns",
-		LastYear:            1,
-		AnnualInflationRate: 0.0,
-		AnnualContributions: []AnnualContribution{},
+		CaseName:                      "LastYearIsOneYearAway_SingleAsset_NoContributions_NoInflation_WithReturns",
+		LastYear:                      1,
+		AnnualInflationRate:           0.0,
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{},
 		PortfolioAllocation: PortfolioAllocation{
 			Equities: {
 				ReturnRate: 0.07,
@@ -55,10 +54,10 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		},
 	},
 	{
-		CaseName:            "LastYearIsOneYearAway_SingleAsset_NoContributions_WithInflation_NoReturns",
-		LastYear:            1,
-		AnnualInflationRate: 0.05,
-		AnnualContributions: []AnnualContribution{},
+		CaseName:                      "LastYearIsOneYearAway_SingleAsset_NoContributions_WithInflation_NoReturns",
+		LastYear:                      1,
+		AnnualInflationRate:           0.05,
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{},
 		PortfolioAllocation: PortfolioAllocation{
 			Equities: {
 				ReturnRate: 0.0,
@@ -76,7 +75,7 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		CaseName:            "LastYearIsOneYearAway_SingleAsset_WithConstantContributions_NoInflation_WithReturns",
 		LastYear:            1,
 		AnnualInflationRate: 0.0,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          10_000,
 				StartYear:       0,
@@ -107,7 +106,7 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		CaseName:            "LastYearIsOneYearAway_SingleAsset_WithConstantContributions_WithInflation_WithReturns",
 		LastYear:            1,
 		AnnualInflationRate: 0.07,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          10_000,
 				StartYear:       0,
@@ -138,7 +137,7 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		CaseName:            "LastYearIsOneYearAway_MultipleAssets_WithConstantContributions_NoInflation_NoReturns",
 		LastYear:            1,
 		AnnualInflationRate: 0.0,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          10_000,
 				StartYear:       0,
@@ -174,7 +173,7 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		CaseName:            "LastYearIsOneYearAway_MultipleAssets_WithConstantContributions_WithInflation_WithReturns",
 		LastYear:            1,
 		AnnualInflationRate: 0.05,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          10_000,
 				StartYear:       0,
@@ -210,7 +209,7 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		CaseName:            "LastYearIsMultipleYearsAway_MultipleAssets_WithConstantContributions_WithInflation_WithReturns",
 		LastYear:            5,
 		AnnualInflationRate: 0.05,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          10_000,
 				StartYear:       0,
@@ -246,7 +245,7 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		CaseName:            "LastYearIsMultipleYearsAway_MultipleAssets_WithDecliningContributions_WithInflation_WithReturns",
 		LastYear:            5,
 		AnnualInflationRate: 0.05,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          10_000,
 				StartYear:       0,
@@ -282,7 +281,7 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		CaseName:            "LastYearIsMultipleYearsAway_MultipleAssets_WithIncreasingContributions_WithInflation_WithReturns",
 		LastYear:            5,
 		AnnualInflationRate: 0.05,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          10_000,
 				StartYear:       0,
@@ -318,7 +317,7 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		CaseName:            "LastYearIsMultipleYearsAway_MultipleAssets_WithConstantContributionsStoppingPartway_WithInflation_WithReturns",
 		LastYear:            5,
 		AnnualInflationRate: 0.05,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          10_000,
 				StartYear:       0,
@@ -354,7 +353,7 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		CaseName:            "LastYearIsMultipleYearsAway_MultipleAssets_WithDecliningContributionsStoppingPartway_WithInflation_WithReturns",
 		LastYear:            5,
 		AnnualInflationRate: 0.05,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          10_000,
 				StartYear:       0,
@@ -390,15 +389,15 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		CaseName:            "LastYearIsMultipleYearsAway_MultipleAssets_WithDecliningWithdrawalsStoppingPartway_WithInflation",
 		LastYear:            5,
 		AnnualInflationRate: 0.05,
-		AnnualWithdrawals: []AnnualWithdrawal{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
-				Amount:          10_000,
+				Amount:          -10_000,
 				StartYear:       0,
 				EndYear:         2,
 				AnnualPctChange: -0.1,
 			},
 			{
-				Amount:          40_000,
+				Amount:          -40_000,
 				StartYear:       0,
 				EndYear:         2,
 				AnnualPctChange: -0.1,
@@ -427,7 +426,7 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		CaseName:            "LastYearIsMultipleYearsAway_MultipleAssets_WithIncreasingContributionsAneDecliningWithdrawalsStoppingPartway_WithInflation_WithReturns",
 		LastYear:            5,
 		AnnualInflationRate: 0.05,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          30_000,
 				StartYear:       1,
@@ -440,16 +439,14 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 				EndYear:         2,
 				AnnualPctChange: 0.1,
 			},
-		},
-		AnnualWithdrawals: []AnnualWithdrawal{
 			{
-				Amount:          10_000,
+				Amount:          -10_000,
 				StartYear:       0,
 				EndYear:         2,
 				AnnualPctChange: -0.1,
 			},
 			{
-				Amount:          35_000,
+				Amount:          -35_000,
 				StartYear:       0,
 				EndYear:         2,
 				AnnualPctChange: -0.1,
@@ -478,7 +475,7 @@ var simulationSuccessCases = []PortfolioSimulatorTestCase{
 		LastYear:                    60,
 		ExpectedTaxRateInRetirement: 0.24,
 		AnnualInflationRate:         0.02,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          10_000,
 				StartYear:       0,
@@ -522,8 +519,7 @@ func TestForecastFuturePortfolioValueByYearSuccessCases(t *testing.T) {
 		t.Run(test.CaseName, func(t *testing.T) {
 			forecastedPortfoliosByYear, _ := ForecastFuturePortfolioValueByYear(
 				test.InitPortfolio,
-				test.AnnualContributions,
-				test.AnnualWithdrawals,
+				test.AnnualPortfolioBalanceChanges,
 				test.PortfolioAllocation,
 				test.AnnualInflationRate,
 				test.LastYear,
@@ -545,7 +541,7 @@ var simulationErrorCases = []PortfolioSimulatorTestCase{
 		CaseName:            "AllocationsDoNotSumUpToOne",
 		LastYear:            1,
 		AnnualInflationRate: 0.0,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          10_000,
 				StartYear:       0,
@@ -570,13 +566,13 @@ var simulationErrorCases = []PortfolioSimulatorTestCase{
 			},
 		},
 		InitPortfolio: Portfolio{},
-		ErrorMessage:  "Portfolio allocation percent must sum up to 1",
+		ErrorMessage:  "portfolio allocation percent must sum up to 1",
 	},
 	{
 		CaseName:            "AnnualContributionStopsAfterLastYear",
 		LastYear:            1,
 		AnnualInflationRate: 0.0,
-		AnnualContributions: []AnnualContribution{
+		AnnualPortfolioBalanceChanges: []AnnualPortfolioBalanceChange{
 			{
 				Amount:          10_000,
 				StartYear:       0,
@@ -591,28 +587,7 @@ var simulationErrorCases = []PortfolioSimulatorTestCase{
 			},
 		},
 		InitPortfolio: Portfolio{},
-		ErrorMessage:  "Annual contribution end year must be less than or equal to last year",
-	},
-	{
-		CaseName:            "AnnualContributionStopsAfterLastYear",
-		LastYear:            1,
-		AnnualInflationRate: 0.0,
-		AnnualWithdrawals: []AnnualWithdrawal{
-			{
-				Amount:          10_000,
-				StartYear:       0,
-				EndYear:         2,
-				AnnualPctChange: 0.0,
-			},
-			{
-				Amount:          40_000,
-				StartYear:       0,
-				EndYear:         2,
-				AnnualPctChange: 0.0,
-			},
-		},
-		InitPortfolio: Portfolio{},
-		ErrorMessage:  "Annual withdrawal end year must be less than or equal to last year",
+		ErrorMessage:  "annual balance change end year must be less than or equal to last year",
 	},
 }
 
@@ -621,8 +596,7 @@ func TestForecastFuturePortfolioValueByYearErrorCases(t *testing.T) {
 		t.Run(test.CaseName, func(t *testing.T) {
 			_, err := ForecastFuturePortfolioValueByYear(
 				test.InitPortfolio,
-				test.AnnualContributions,
-				test.AnnualWithdrawals,
+				test.AnnualPortfolioBalanceChanges,
 				test.PortfolioAllocation,
 				test.AnnualInflationRate,
 				test.LastYear,
