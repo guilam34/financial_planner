@@ -1,15 +1,19 @@
-package main
+package simulator
+
+import "github.com/guilam34/financial_planner/models"
 
 type RebalancingStrategy interface {
-	Rebalance(portfolio Portfolio, portfolioAllocation PortfolioAllocation, year int) Portfolio
+	Rebalance(
+		portfolio models.Portfolio,
+		portfolioAllocation models.PortfolioAllocation, year int) models.Portfolio
 }
 
 type RebalanceToZero struct{}
 
 func (r RebalanceToZero) Rebalance(
-	portfolio Portfolio,
-	portfolioAllocation PortfolioAllocation,
-	year int) Portfolio {
+	portfolio models.Portfolio,
+	portfolioAllocation models.PortfolioAllocation,
+	year int) models.Portfolio {
 
 	portfolioValue, positiveValAssetTypes, negativeValAssetTypes := getNetPortfolioValue(portfolio)
 
@@ -18,7 +22,7 @@ func (r RebalanceToZero) Rebalance(
 		return portfolio
 	}
 
-	rebalancedPortfolio := Portfolio{}
+	rebalancedPortfolio := models.Portfolio{}
 	for key, value := range portfolio {
 		rebalancedPortfolio[key] = value
 	}
@@ -35,13 +39,13 @@ func (r RebalanceToZero) Rebalance(
 }
 
 type RebalanceEveryNYears struct {
-	n int
+	rebalanceCadence int
 }
 
 func (r RebalanceEveryNYears) Rebalance(
-	portfolio Portfolio,
-	portfolioAllocation PortfolioAllocation,
-	year int) Portfolio {
+	portfolio models.Portfolio,
+	portfolioAllocation models.PortfolioAllocation,
+	year int) models.Portfolio {
 
 	portfolioValue, _, negativeValAssetTypes := getNetPortfolioValue(portfolio)
 
@@ -50,8 +54,8 @@ func (r RebalanceEveryNYears) Rebalance(
 		return portfolio
 	}
 
-	if year%r.n == 0 {
-		rebalancedPortfolio := Portfolio{}
+	if year%r.rebalanceCadence == 0 {
+		rebalancedPortfolio := models.Portfolio{}
 		for assetType, allocation := range portfolioAllocation {
 			rebalancedPortfolio[assetType] = portfolioValue * allocation.Allocation
 		}
@@ -66,14 +70,14 @@ func (r RebalanceEveryNYears) Rebalance(
 }
 
 func getNetPortfolioValue(
-	portfolio Portfolio) (
+	portfolio models.Portfolio) (
 	portfolioValue float64,
-	positiveValAssetTypes []assetType,
-	negativeValAssetTypes []assetType) {
+	positiveValAssetTypes []models.AssetType,
+	negativeValAssetTypes []models.AssetType) {
 
 	portfolioValue = 0.0
-	positiveValAssetTypes = []assetType{}
-	negativeValAssetTypes = []assetType{}
+	positiveValAssetTypes = []models.AssetType{}
+	negativeValAssetTypes = []models.AssetType{}
 	for idx, assetVal := range portfolio {
 		portfolioValue = portfolioValue + assetVal
 		if assetVal > 0 {
