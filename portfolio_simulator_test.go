@@ -1,12 +1,10 @@
 package main
 
 import (
-	"math"
-	"strconv"
 	"testing"
 )
 
-type TestCase struct {
+type PortfolioSimulatorTestCase struct {
 	CaseName                    string
 	LastYear                    int
 	ExpectedTaxRateInRetirement float64
@@ -19,18 +17,7 @@ type TestCase struct {
 	ErrorMessage                string
 }
 
-const float64EqualityThreshold = 1
-
-func almostEqual(a, b float64) bool {
-	return math.Abs(a-b) <= float64EqualityThreshold
-}
-
-func fromScientificNotation(a string) float64 {
-	val, _ := strconv.ParseFloat(a, 64)
-	return val
-}
-
-var successCases = []TestCase{
+var simulationSuccessCases = []PortfolioSimulatorTestCase{
 	{
 		CaseName:            "LastYearIsToday",
 		LastYear:            0,
@@ -431,7 +418,7 @@ var successCases = []TestCase{
 			Equities: 200_000,
 		},
 		EndPortfolio: Portfolio{
-			Equities: 139_315,
+			Equities: 118_940,
 			Cash:     0,
 		},
 	},
@@ -531,7 +518,7 @@ var successCases = []TestCase{
 }
 
 func TestForecastFuturePortfolioValueByYearSuccessCases(t *testing.T) {
-	for _, test := range successCases {
+	for _, test := range simulationSuccessCases {
 		t.Run(test.CaseName, func(t *testing.T) {
 			forecastedPortfoliosByYear, _ := ForecastFuturePortfolioValueByYear(
 				test.InitPortfolio,
@@ -553,7 +540,7 @@ func TestForecastFuturePortfolioValueByYearSuccessCases(t *testing.T) {
 	}
 }
 
-var errorCases = []TestCase{
+var simulationErrorCases = []PortfolioSimulatorTestCase{
 	{
 		CaseName:            "AllocationsDoNotSumUpToOne",
 		LastYear:            1,
@@ -630,7 +617,7 @@ var errorCases = []TestCase{
 }
 
 func TestForecastFuturePortfolioValueByYearErrorCases(t *testing.T) {
-	for _, test := range errorCases {
+	for _, test := range simulationErrorCases {
 		t.Run(test.CaseName, func(t *testing.T) {
 			_, err := ForecastFuturePortfolioValueByYear(
 				test.InitPortfolio,
