@@ -43,7 +43,8 @@ func ForecastFuturePortfolioValueByYear(
 	annualWithdrawals []AnnualWithdrawal,
 	portfolioAllocationWitNominalRates PortfolioAllocation,
 	annualInflationRate float64,
-	years int) ([]Portfolio, error) {
+	years int,
+	rebalancingStrategy RebalancingStrategy) ([]Portfolio, error) {
 
 	for _, annualContribution := range annualContributions {
 		if annualContribution.EndYear > years {
@@ -76,7 +77,7 @@ func ForecastFuturePortfolioValueByYear(
 	var result []Portfolio = []Portfolio{initPortfolio}
 	var prevPortfolio Portfolio = initPortfolio
 	for year := 1; year <= years; year++ {
-		curPortfolio := forecastNextYearPortfolio(prevPortfolio, annualContributions, annualWithdrawals, portfolioAllocationWithRealRates, year)
+		curPortfolio := forecastNextYearPortfolio(prevPortfolio, annualContributions, annualWithdrawals, portfolioAllocationWithRealRates, year, rebalancingStrategy)
 		result = append(result, curPortfolio)
 		prevPortfolio = curPortfolio
 	}
@@ -92,7 +93,8 @@ func forecastNextYearPortfolio(
 	annualContributions []AnnualContribution,
 	annualWithdrawals []AnnualWithdrawal,
 	portfolioAllocationWitRealRates PortfolioAllocation,
-	year int) Portfolio {
+	year int,
+	rebalancingStrategy RebalancingStrategy) Portfolio {
 
 	forecastedPortfolio := Portfolio{}
 
@@ -125,39 +127,5 @@ func forecastNextYearPortfolio(
 			}
 		}
 	}
-	return rebalance(forecastedPortfolio)
-}
-
-func rebalance(portfolio Portfolio) Portfolio {
-	portfolioValue := 0.0
-	positiveValAssetTypes := []assetType{}
-	negativeValAssetTypes := []assetType{}
-	for idx, assetVal := range portfolio {
-		portfolioValue = portfolioValue + assetVal
-		if assetVal > 0 {
-			positiveValAssetTypes = append(positiveValAssetTypes, idx)
-		} else if assetVal < 0 {
-			negativeValAssetTypes = append(negativeValAssetTypes, idx)
-		}
-	}
-
-	// Only rebalance if we're not in the negative
-	if portfolioValue < 0.0 {
-		return portfolio
-	}
-
-	rebalancedPortfolio := Portfolio{}
-	for key, value := range portfolio {
-		rebalancedPortfolio[key] = value
-	}
-
-	for _, assetType := range negativeValAssetTypes {
-		assetVal := portfolio[assetType]
-		amtToSubtractFromEachPosAsset := assetVal / float64(len(positiveValAssetTypes))
-		rebalancedPortfolio[assetType] = 0
-		for _, assetType := range positiveValAssetTypes {
-			rebalancedPortfolio[assetType] = rebalancedPortfolio[assetType] - amtToSubtractFromEachPosAsset
-		}
-	}
-	return rebalancedPortfolio
+	return rebalancingStrategy.Rebalance(forecastedPortfolio)
 }

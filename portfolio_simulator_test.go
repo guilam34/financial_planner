@@ -539,7 +539,8 @@ func TestForecastFuturePortfolioValueByYearSuccessCases(t *testing.T) {
 				test.AnnualWithdrawals,
 				test.PortfolioAllocation,
 				test.AnnualInflationRate,
-				test.LastYear)
+				test.LastYear,
+				RebalanceToZero{})
 			forecastedPortfolioForLastYear := forecastedPortfoliosByYear[len(forecastedPortfoliosByYear)-1]
 			for assetType, expectedVal := range test.EndPortfolio {
 				actualVal, ok := forecastedPortfolioForLastYear[assetType]
@@ -637,7 +638,8 @@ func TestForecastFuturePortfolioValueByYearErrorCases(t *testing.T) {
 				test.AnnualWithdrawals,
 				test.PortfolioAllocation,
 				test.AnnualInflationRate,
-				test.LastYear)
+				test.LastYear,
+				RebalanceToZero{})
 			if err.Error() != test.ErrorMessage {
 				t.Errorf("Expected %v but got %v", test.ErrorMessage, err.Error())
 			}
