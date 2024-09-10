@@ -1,23 +1,13 @@
 package main
 
 type RebalancingStrategy interface {
-	Rebalance(portfolio Portfolio) Portfolio
+	Rebalance(portfolio Portfolio, year int) Portfolio
 }
 
 type RebalanceToZero struct{}
 
-func (r RebalanceToZero) Rebalance(portfolio Portfolio) Portfolio {
-	portfolioValue := 0.0
-	positiveValAssetTypes := []assetType{}
-	negativeValAssetTypes := []assetType{}
-	for idx, assetVal := range portfolio {
-		portfolioValue = portfolioValue + assetVal
-		if assetVal > 0 {
-			positiveValAssetTypes = append(positiveValAssetTypes, idx)
-		} else if assetVal < 0 {
-			negativeValAssetTypes = append(negativeValAssetTypes, idx)
-		}
-	}
+func (r RebalanceToZero) Rebalance(portfolio Portfolio, year int) Portfolio {
+	portfolioValue, positiveValAssetTypes, negativeValAssetTypes := getNetPortfolioValue(portfolio)
 
 	// Only rebalance if we're not in the negative
 	if portfolioValue < 0.0 {
@@ -38,4 +28,32 @@ func (r RebalanceToZero) Rebalance(portfolio Portfolio) Portfolio {
 		}
 	}
 	return rebalancedPortfolio
+}
+
+type RebalanceEveryNYears struct {
+	n int
+}
+
+func (r RebalanceEveryNYears) Rebalance(portfolio Portfolio, year int) {
+
+}
+
+func getNetPortfolioValue(
+	portfolio Portfolio) (
+	portfolioValue float64,
+	positiveValAssetTypes []assetType,
+	negativeValAssetTypes []assetType) {
+
+	portfolioValue = 0.0
+	positiveValAssetTypes = []assetType{}
+	negativeValAssetTypes = []assetType{}
+	for idx, assetVal := range portfolio {
+		portfolioValue = portfolioValue + assetVal
+		if assetVal > 0 {
+			positiveValAssetTypes = append(positiveValAssetTypes, idx)
+		} else if assetVal < 0 {
+			negativeValAssetTypes = append(negativeValAssetTypes, idx)
+		}
+	}
+	return
 }

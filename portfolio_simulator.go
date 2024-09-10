@@ -127,5 +127,5 @@ func forecastNextYearPortfolio(
 			}
 		}
 	}
-	return rebalancingStrategy.Rebalance(forecastedPortfolio)
+	return rebalancingStrategy.Rebalance(forecastedPortfolio, year)
 }
